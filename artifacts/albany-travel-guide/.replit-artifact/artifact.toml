@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Albany, Georgia Travel Guide"
+description = "A visitor-focused guide to exploring Albany, Georgia, with local landmarks, food, culture, and practical travel tips."
+version = "1.0.0"
+id = "artifacts/albany-travel-guide"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19672
+
+[services.development]
+run = "pnpm --filter @workspace/albany-travel-guide run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/albany-travel-guide", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/albany-travel-guide/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19672"
+BASE_PATH = "/"
