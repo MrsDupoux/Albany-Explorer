@@ -1,0 +1,83 @@
+.guide-shell .ask-guide-section {
+  background-image: linear-gradient(135deg, rgba(250, 248, 241, 0.38), transparent 48%);
+}
+
+.guide-shell .ask-guide-chat,
+.guide-shell .ask-guide-lab {
+  box-shadow: 0 14px 34px rgba(32, 59, 50, 0.055);
+}
+
+.guide-shell .ask-guide-answer {
+  width: fit-content;
+  max-width: 100%;
+  border-left: 2px solid #d4a95e;
+  padding: 1px 0 0 14px;
+}
+
+.guide-shell .ask-guide-visitor {
+  border-radius: 2px 12px 2px 12px;
+  background: #335848;
+  padding: 12px 15px;
+}
+
+.guide-shell .ask-guide-chip {
+  border: 1px solid #c9c1b2;
+  border-radius: 999px;
+  background: #f2efe5;
+  padding: 7px 10px;
+  color: #51685b;
+  font-size: 10px;
+  line-height: 1.3;
+  transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease;
+}
+
+.guide-shell .ask-guide-chip:hover {
+  border-color: #829083;
+  background: #e8e2d4;
+  color: #203b32;
+}
+
+.guide-shell .ask-guide-cutoff {
+  border: 1px solid #bb654b;
+  padding: 2px 5px;
+  color: #a14e37;
+  letter-spacing: 0.06em;
+}
+
+.guide-shell .ask-guide-range {
+  height: 18px;
+  accent-color: #335848;
+  cursor: pointer;
+}
+
+.guide-shell .ask-guide-range:focus-visible,
+.guide-shell .ask-guide-chip:focus-visible,
+.guide-shell .ask-guide-send:focus-visible,
+.guide-shell .ask-guide-prompt summary:focus-visible {
+  outline: 2px solid #bb654b;
+  outline-offset: 3px;
+}
+
+.guide-shell .ask-guide-transcript {
+  scrollbar-color: #c9c1b2 transparent;
+  scrollbar-width: thin;
+}
+
+.guide-shell .ask-guide-prompt summary::-webkit-details-marker {
+  display: none;
+}
+
+.guide-shell .ask-guide-prompt[open] summary .eyebrow::after {
+  content: ' LESS';
+}
+
+@media (max-width: 767px) {
+  .guide-shell .ask-guide-section {
+    background-image: none;
+  }
+
+  .guide-shell .ask-guide-chat,
+  .guide-shell .ask-guide-lab {
+    box-shadow: 0 8px 20px rgba(32, 59, 50, 0.045);
+  }
+}

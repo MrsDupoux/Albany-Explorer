@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { AlbanyChat } from '@/components/albany-chat';
+import './albany-chat.css';
 import NotFound from '@/pages/not-found';
 import {
   ArrowDown,
@@ -48,6 +50,7 @@ function Home() {
             <a className="nav-link" href="#more-places" onClick={closeMenu} data-testid="link-landmarks">Landmarks</a>
             <a className="nav-link" href="#table" onClick={closeMenu} data-testid="link-table">At the table</a>
             <a className="nav-link" href="#culture" onClick={closeMenu} data-testid="link-culture">Culture</a>
+            <a className="nav-link" href="#ask-a-local" onClick={closeMenu} data-testid="link-ask-local">Ask a local</a>
             <a className="nav-link" href="#know-before" onClick={closeMenu} data-testid="link-practical">Before you go</a>
           </nav>
           <a href="#start-here" className="hidden items-center gap-2 rounded-full border border-[#203b32] px-4 py-2 text-[12px] font-semibold transition-colors hover:bg-[#203b32] hover:text-[#f2efe5] md:flex" data-testid="link-plan">
@@ -264,6 +267,8 @@ function Home() {
             </div>
           </div>
         </section>
+
+        <AlbanyChat />
 
         <section id="know-before" className="bg-[#d4a95e] text-[#203b32]">
           <div className="mx-auto grid max-w-[1380px] gap-12 px-6 py-16 md:grid-cols-[.8fr_1.2fr] md:gap-20 md:px-10 md:py-20">

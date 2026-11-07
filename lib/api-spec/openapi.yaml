@@ -10,7 +10,57 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: chat
+    description: Albany city guide chat operations
 paths:
+  /chat:
+    post:
+      operationId: chatWithCityGuide
+      tags: [chat]
+      summary: Ask the Albany city guide
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatRequest"
+      responses:
+        "200":
+          description: City guide answer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+        "400":
+          description: Invalid chat request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatError"
+        "502":
+          description: Gemini could not complete the request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatError"
+        "503":
+          description: Gemini API key is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatError"
+  /chat/system-prompt:
+    get:
+      operationId: getCityGuideSystemPrompt
+      tags: [chat]
+      summary: Get the Albany city guide system prompt
+      responses:
+        "200":
+          description: System prompt used by the city guide
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CityGuideSystemPrompt"
   /healthz:
     get:
       operationId: healthCheck
@@ -26,6 +76,117 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    ChatSettingsInput:
+      type: object
+      properties:
+        temperature:
+          type: number
+          minimum: 0
+          maximum: 2
+        topP:
+          type: number
+          minimum: 0
+          maximum: 1
+        maxOutputTokens:
+          type: integer
+          minimum: 32
+          maximum: 1024
+    ChatSettings:
+      type: object
+      properties:
+        temperature:
+          type: number
+          minimum: 0
+          maximum: 2
+        topP:
+          type: number
+          minimum: 0
+          maximum: 1
+        maxOutputTokens:
+          type: integer
+          minimum: 32
+          maximum: 1024
+      required:
+        - temperature
+        - topP
+        - maxOutputTokens
+    ChatHistoryMessage:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+          maxLength: 4000
+      required:
+        - role
+        - content
+    ChatRequest:
+      type: object
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        history:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/ChatHistoryMessage"
+        settings:
+          $ref: "#/components/schemas/ChatSettingsInput"
+      required:
+        - message
+    ChatUsage:
+      type: object
+      properties:
+        promptTokens:
+          type: [integer, "null"]
+          minimum: 0
+        outputTokens:
+          type: [integer, "null"]
+          minimum: 0
+        totalTokens:
+          type: [integer, "null"]
+          minimum: 0
+      required:
+        - promptTokens
+        - outputTokens
+        - totalTokens
+    ChatResponse:
+      type: object
+      properties:
+        reply:
+          type: string
+        usage:
+          $ref: "#/components/schemas/ChatUsage"
+        settings:
+          $ref: "#/components/schemas/ChatSettings"
+        model:
+          type: string
+        cutOff:
+          type: boolean
+      required:
+        - reply
+        - usage
+        - settings
+        - model
+        - cutOff
+    ChatError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    CityGuideSystemPrompt:
+      type: object
+      properties:
+        systemPrompt:
+          type: string
+      required:
+        - systemPrompt
     HealthStatus:
       type: object
       properties:

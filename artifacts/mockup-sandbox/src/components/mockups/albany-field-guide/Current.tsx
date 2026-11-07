@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import {
   ArrowDown,
   ArrowDownRight,
@@ -7,13 +7,106 @@ import {
   Compass,
   MapPin,
   Menu,
+  RotateCcw,
+  Send,
+  Sparkles,
   X,
 } from 'lucide-react';
 import './_group.css';
+import './Current.css';
+
+type PromptSettings = {
+  temperature: number;
+  topP: number;
+  maxOutputTokens: number;
+};
+
+type ChatMessage = {
+  role: 'guide' | 'visitor';
+  text: string;
+  tokens?: number;
+  settings?: PromptSettings;
+  cutOff?: boolean;
+};
+
+const defaultSettings: PromptSettings = {
+  temperature: 1,
+  topP: 0.95,
+  maxOutputTokens: 300,
+};
+
+const citySystemPrompt = `You are a city guide for Albany, GA. Answer every question in the voice of a warm, unhurried Southwest Georgia local—friendly and lightly Southern, never a caricature.
+
+CITY FACTS
+• Albany sits on the Flint River in southwest Georgia.
+• The Albany Movement (1961–62) challenged segregation and helped shape the Civil Rights Movement. Visit the Albany Civil Rights Institute to learn more.
+• Ray Charles was born in Albany in 1930. Ray Charles Plaza honors him downtown beside the river.
+• Landmarks include Thronateeska Heritage Center, Radium Springs Gardens, and Chehaw Park & Zoo. Check access and seasonal hours before visiting.
+• Local Southern staples include catfish, greens, cornbread, field peas, and seasonal produce. Albany Fish Company, Harvest Moon, and Pretoria Fields Collective are local dining leads; hours and offerings can change.
+• Albany has a living music and event scene. Check with venues and organizers for current schedules.
+• The city is spread out; a car helps. Summers are hot and humid, so bring water and check the forecast.
+
+RULES
+Keep every answer under 120 words and family-friendly. Steer off-topic questions back toward Albany. Say when you are unsure instead of guessing. Never ask for personal information.`;
+
+function makeCityReply(question: string) {
+  const text = question.toLowerCase();
+  if (/(eat|food|lunch|dinner|restaurant|hungry|dish|taste)/.test(text)) {
+    return "Well, if you’re picking your first Albany plate, start with the Southern staples: catfish, greens, cornbread, or field peas. Albany Fish Company is a fine place to look for seafood, and Harvest Moon makes an easygoing lunch stop. Ask what’s fresh or on special when you arrive—local menus and hours can shift. That’s the best way to find what the kitchen’s proud of today.";
+  }
+  if (/(history|civil|movement|museum|learn)/.test(text)) {
+    return "I’d start at the Albany Civil Rights Institute. The Albany Movement of 1961–62 was a consequential chapter in the fight against segregation, and the Institute gives you room to hear that story carefully. Set aside a little time, and check the museum’s current hours before you head over.";
+  }
+  if (/(river|ray charles|plaza|walk|outside|outdoors)/.test(text)) {
+    return "Take a little time downtown at Ray Charles Plaza, right by the Flint River. There’s a piano-shaped fountain and a bronze tribute to Albany’s own Ray Charles. Find a shady bench, take in the water, and check local conditions if you’re planning to spend more time along the river.";
+  }
+  if (/(kid|family|children|zoo|chehaw)/.test(text)) {
+    return "For a family outing, have a look at Chehaw Park & Zoo—there are animal exhibits, trails, and outdoor activities to make a day of it. Some attractions are seasonal, so check Chehaw’s visitor details before you set out. Bring water, especially in a Georgia summer.";
+  }
+  return "I may not have the latest detail on that, but I can point you toward a good Albany day: take in the story at the Albany Civil Rights Institute, wander down to Ray Charles Plaza by the Flint River, and leave room for a local supper. For changing hours, events, and access, check with the venue before you go.";
+}
 
 export function Current() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [temperature, setTemperature] = useState(defaultSettings.temperature);
+  const [topP, setTopP] = useState(defaultSettings.topP);
+  const [maxOutputTokens, setMaxOutputTokens] = useState(defaultSettings.maxOutputTokens);
+  const [draft, setDraft] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      role: 'guide',
+      text: 'Well, if you’re picking your first Albany plate, start with the Southern staples: catfish, greens, cornbread, or field peas. Ask what’s fresh today, and leave a little room for the conversation.',
+      tokens: 38,
+      settings: defaultSettings,
+    },
+  ]);
   const closeMenu = () => setMenuOpen(false);
+  const resetPromptSettings = () => {
+    setTemperature(defaultSettings.temperature);
+    setTopP(defaultSettings.topP);
+    setMaxOutputTokens(defaultSettings.maxOutputTokens);
+  };
+  const askGuide = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const question = draft.trim();
+    if (!question) return;
+    const settings = { temperature, topP, maxOutputTokens };
+    const fullAnswer = makeCityReply(question);
+    const cutOff = maxOutputTokens <= 50 && question.length > 75;
+    const answer = cutOff ? `${fullAnswer.slice(0, 170).trimEnd()}…` : fullAnswer;
+    setMessages((current) => [
+      ...current,
+      { role: 'visitor', text: question },
+      {
+        role: 'guide',
+        text: answer,
+        tokens: cutOff ? maxOutputTokens : Math.min(79, maxOutputTokens),
+        settings,
+        cutOff,
+      },
+    ]);
+    setDraft('');
+  };
 
   return (
     <div className="guide-shell min-h-[100dvh]">
@@ -36,6 +129,7 @@ export function Current() {
             <a className="nav-link" href="#more-places" onClick={closeMenu} data-testid="link-landmarks">Landmarks</a>
             <a className="nav-link" href="#table" onClick={closeMenu} data-testid="link-table">At the table</a>
             <a className="nav-link" href="#culture" onClick={closeMenu} data-testid="link-culture">Culture</a>
+            <a className="nav-link" href="#ask-a-local" onClick={closeMenu} data-testid="link-ask-local">Ask a local</a>
             <a className="nav-link" href="#know-before" onClick={closeMenu} data-testid="link-practical">Before you go</a>
           </nav>
           <a href="#start-here" className="hidden items-center gap-2 rounded-full border border-[#203b32] px-4 py-2 text-[12px] font-semibold transition-colors hover:bg-[#203b32] hover:text-[#f2efe5] md:flex" data-testid="link-plan">
@@ -250,6 +344,123 @@ export function Current() {
                 <p className="mt-3 text-[13px] leading-[1.8] text-[#68746a]">Ask about tonight’s music and what is cooking. Let the evening decide where you land.</p>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section id="ask-a-local" className="ask-guide-section border-y border-[#d8d2c5] bg-[#e8e2d4]">
+          <div className="mx-auto max-w-[1380px] px-6 py-20 md:px-10 md:py-28">
+            <div className="mb-11 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+              <div>
+                <div className="eyebrow mb-5 flex items-center gap-3 text-[#bb654b]"><span className="h-px w-7 bg-[#bb654b]" /> A LITTLE LOCAL KNOW-HOW</div>
+                <h2 className="serif max-w-[700px] text-[clamp(2.8rem,6vw,5.3rem)] leading-[.94] tracking-[-.06em]">Ask your Albany <em>guide.</em></h2>
+              </div>
+              <p className="max-w-[350px] text-[14px] leading-[1.8] text-[#59645a]">From what to order to where the river bends, ask away. You’ll get a friendly answer grounded in this field guide.</p>
+            </div>
+
+            <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1.45fr)_minmax(290px,.72fr)]">
+              <div className="ask-guide-chat overflow-hidden border border-[#c9c1b2] bg-[#faf8f1]">
+                <div className="flex items-center justify-between gap-4 border-b border-[#d8d2c5] px-5 py-4 md:px-7">
+                  <div className="flex items-center gap-3">
+                    <span className="grid h-10 w-10 place-items-center rounded-full border border-[#b9c5b8] bg-[#e8e2d4] text-[#335848]"><Compass size={18} strokeWidth={1.5} /></span>
+                    <div>
+                      <p className="serif text-[19px] leading-none text-[#203b32]">Your Albany guide</p>
+                      <p className="mono mt-1.5 text-[8px] tracking-[.16em] text-[#738276]">HERE FOR THE GOOD QUESTIONS</p>
+                    </div>
+                  </div>
+                  <span className="flex items-center gap-2 text-[10px] text-[#738276]"><span className="h-1.5 w-1.5 rounded-full bg-[#77916e]" /> City notes ready</span>
+                </div>
+
+                <div className="ask-guide-transcript flex max-h-[410px] min-h-[290px] flex-col gap-5 overflow-y-auto px-4 py-5 md:px-7 md:py-7" aria-live="polite" aria-label="Conversation with your Albany guide">
+                  {messages.map((message, index) => (
+                    <div key={`${message.role}-${index}`} className={`flex ${message.role === 'visitor' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[92%] md:max-w-[84%] ${message.role === 'visitor' ? 'ask-guide-visitor' : 'ask-guide-answer'}`}>
+                        {message.role === 'guide' && (
+                          <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold tracking-[.04em] text-[#738276]">
+                            <Sparkles size={12} className="text-[#bb654b]" /> ALBANY GUIDE
+                          </div>
+                        )}
+                        <p className={`text-[13px] leading-[1.8] ${message.role === 'visitor' ? 'text-[#f2efe5]' : 'text-[#45554a]'}`}>{message.text}</p>
+                        {message.role === 'guide' && message.settings && (
+                          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-[#d8d2c5] pt-3 text-[9px] text-[#778176]">
+                            <span className="mono">{message.tokens} TOKENS</span>
+                            <span className="text-[#bb654b]">/</span>
+                            <span className="mono">TEMP {message.settings.temperature.toFixed(1)}</span>
+                            <span className="mono">TOP-P {message.settings.topP.toFixed(2)}</span>
+                            <span className="mono">MAX {message.settings.maxOutputTokens}</span>
+                            {message.cutOff && <span className="ask-guide-cutoff">ANSWER CUT OFF</span>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="border-t border-[#d8d2c5] px-4 pb-5 pt-4 md:px-7">
+                  <p className="mb-3 text-[10px] font-semibold uppercase tracking-[.13em] text-[#778176]">A few good places to start</p>
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    {['What should I eat first?', 'Best first stop with kids?', 'Tell me about the river'].map((prompt) => (
+                      <button key={prompt} type="button" onClick={() => setDraft(prompt)} className="ask-guide-chip">{prompt}</button>
+                    ))}
+                  </div>
+                  <form onSubmit={askGuide} className="flex gap-2">
+                    <label className="sr-only" htmlFor="albany-guide-question">Ask your Albany guide</label>
+                    <input
+                      id="albany-guide-question"
+                      value={draft}
+                      onChange={(event) => setDraft(event.target.value)}
+                      placeholder="Ask about food, history, or a good day out…"
+                      className="ask-guide-input min-w-0 flex-1 rounded-sm border border-[#d8d2c5] bg-[#f2efe5] px-4 py-3 text-[12px] text-[#203b32] outline-none transition-colors placeholder:text-[#8d9488] focus:border-[#829083]"
+                    />
+                    <button type="submit" aria-label="Send question" disabled={!draft.trim()} className="ask-guide-send grid h-11 w-12 shrink-0 place-items-center bg-[#203b32] text-[#f2efe5] transition-colors hover:bg-[#335848] disabled:cursor-not-allowed disabled:opacity-40">
+                      <Send size={16} />
+                    </button>
+                  </form>
+                  <p className="mt-3 text-[10px] leading-5 text-[#899087]">City questions only, please. The guide won’t ask for personal details.</p>
+                </div>
+              </div>
+
+              <aside className="ask-guide-lab border border-[#c9c1b2] bg-[#f2efe5]">
+                <div className="border-b border-[#d8d2c5] px-5 py-5 md:px-6">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="eyebrow mb-2 text-[#bb654b]">TUNE THE TONE</div>
+                      <h3 className="serif text-[29px] leading-none tracking-[-.04em] text-[#203b32]">Prompt Lab</h3>
+                    </div>
+                    <span className="grid h-9 w-9 place-items-center rounded-full border border-[#c9c1b2] text-[#51685b]"><Sparkles size={15} /></span>
+                  </div>
+                  <p className="mt-3 text-[11px] leading-[1.7] text-[#69756a]">Adjust how the guide answers. New settings apply to your next question.</p>
+                </div>
+
+                <div className="space-y-5 px-5 py-5 md:px-6">
+                  <label className="block">
+                    <span className="mb-2 flex items-center justify-between text-[11px] font-semibold text-[#44564b]"><span>Temperature</span><span className="mono text-[#bb654b]">{temperature.toFixed(1)}</span></span>
+                    <input className="ask-guide-range w-full" type="range" min="0" max="2" step="0.1" value={temperature} onChange={(event) => setTemperature(Number(event.target.value))} aria-label="Temperature" />
+                    <span className="mt-1 flex justify-between text-[9px] text-[#899087]"><span>Steady</span><span>More playful</span></span>
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 flex items-center justify-between text-[11px] font-semibold text-[#44564b]"><span>Max output tokens</span><span className="mono text-[#bb654b]">{maxOutputTokens}</span></span>
+                    <input className="ask-guide-range w-full" type="range" min="32" max="1024" step="16" value={maxOutputTokens} onChange={(event) => setMaxOutputTokens(Number(event.target.value))} aria-label="Maximum output tokens" />
+                    <span className="mt-1 flex justify-between text-[9px] text-[#899087]"><span>32</span><span>1,024</span></span>
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 flex items-center justify-between text-[11px] font-semibold text-[#44564b]"><span>Top-p</span><span className="mono text-[#bb654b]">{topP.toFixed(2)}</span></span>
+                    <input className="ask-guide-range w-full" type="range" min="0" max="1" step="0.01" value={topP} onChange={(event) => setTopP(Number(event.target.value))} aria-label="Top-p" />
+                    <span className="mt-1 flex justify-between text-[9px] text-[#899087]"><span>Focused</span><span>Broad</span></span>
+                  </label>
+                  <button type="button" onClick={resetPromptSettings} className="inline-flex items-center gap-2 border-b border-[#aeb6a9] pb-1 text-[10px] font-semibold text-[#51685b] transition-colors hover:text-[#bb654b]">
+                    <RotateCcw size={12} /> RESET TO DEFAULTS
+                  </button>
+
+                  <details className="ask-guide-prompt border-t border-[#d8d2c5] pt-4">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[11px] font-semibold text-[#44564b]">
+                      <span>See the system prompt</span><span className="eyebrow text-[9px] text-[#899087]">SHOW</span>
+                    </summary>
+                    <pre className="mt-3 max-h-[245px] overflow-auto whitespace-pre-wrap border border-[#d8d2c5] bg-[#e8e2d4] p-3 text-[9px] leading-[1.7] text-[#59645a]">{citySystemPrompt}</pre>
+                  </details>
+                </div>
+              </aside>
+            </div>
+            <p className="mt-5 flex items-center gap-2 text-[10px] text-[#82877b]"><Sparkles size={12} className="text-[#bb654b]" /> A guide to the city, not a live directory. Verify hours, access, and event details before visiting.</p>
           </div>
         </section>
 
